@@ -52,6 +52,14 @@ const uint8_t RoundConstants[10][4] = {
 };
 
 
+void ShiftRow(unsigned char *string, int row);
+
+unsigned char Multiply(unsigned char i, int i1);
+
+void shiftRow(unsigned char *string, int i);
+
+unsigned char galois_multiplication(unsigned char i, int i1);
+
 // Function to set the cipher key
 void set_cipher_key(uint8_t *key) {
     // Cipher key in hexadecimal format
@@ -77,32 +85,105 @@ void gen_key(uint8_t *key) {
 // Transformation in the Cipher that processes the State using a non­
 // linear byte substitution table (S-box) that operates on each of the
 // State bytes independently.
-void SubBytes() {
 
+void SubBytes(unsigned char *state)
+{
+    int i;
+    /* substitute all the values from the state with the value in the SBox
+     * using the state value as index for the SBox
+     */
+    for (i = 0; i < 16; i++)
+        state[i] = SBox[state[i]];
 }
+
+
 
 // Transformation in the Cipher that processes the State by cyclically
 // shifting the last three rows of the State by different offsets.
-void ShiftRows() {
-
+void ShiftRows(unsigned char *state)
+{
+    int i;
+    // iterate over the 4 rows and call shiftRow() with that row
+    for (i = 0; i < 4; i++)
+        ShiftRow(state + i * 4, i);
 }
+
+void ShiftRow(unsigned char *state, int nbr) {
+    int i, j;
+    unsigned char tmp;
+    // each iteration shifts the row to the left by 1
+    for (i = 0; i < nbr; i++)
+    {
+        tmp = state[0];
+        for (j = 0; j < 3; j++)
+            state[j] = state[j + 1];
+        state[3] = tmp;
+    }
+}
+
 
 // Transformation in the Cipher that takes all of the columns of the
 // State and mixes their data (independently of one another) to
 // produce new columns.
 
-void MixColumns(){
+void MixColumns(unsigned char *column)
+{
+    unsigned char cpy[4];
+    int i;
+    for (i = 0; i < 4; i++)
+    {
+        cpy[i] = column[i];
+    }
+    column[0] = galois_multiplication(cpy[0], 2) ^
+                galois_multiplication(cpy[3], 1) ^
+                galois_multiplication(cpy[2], 1) ^
+                galois_multiplication(cpy[1], 3);
 
+    column[1] = galois_multiplication(cpy[1], 2) ^
+                galois_multiplication(cpy[0], 1) ^
+                galois_multiplication(cpy[3], 1) ^
+                galois_multiplication(cpy[2], 3);
+
+    column[2] = galois_multiplication(cpy[2], 2) ^
+                galois_multiplication(cpy[1], 1) ^
+                galois_multiplication(cpy[0], 1) ^
+                galois_multiplication(cpy[3], 3);
+
+    column[3] = galois_multiplication(cpy[3], 2) ^
+                galois_multiplication(cpy[2], 1) ^
+                galois_multiplication(cpy[1], 1) ^
+                galois_multiplication(cpy[0], 3);
 }
+
+unsigned char galois_multiplication(unsigned char a, int b) {
+    unsigned char p = 0;
+    unsigned char counter;
+    unsigned char hi_bit_set;
+    for (counter = 0; counter < 8; counter++)
+    {
+        if ((b & 1) == 1)
+            p ^= a;
+        hi_bit_set = (a & 0x80);
+        a <<= 1;
+        if (hi_bit_set == 0x80)
+            a ^= 0x1b;
+        b >>= 1;
+    }
+    return p;
+}
+
 
 // Transformation in the Cipher and Inverse Cipher in which a Round
 // Key is added to the State using an XOR operation. The length of a
 // Round Key equals the size of the State (i.e., for Nb = 4, the Round
 // Key length equals 128 bits/16 bytes).
 
-void AddRoundKey(){
-
-};
+void AddRoundKey(unsigned char *state, const unsigned char *roundKey)
+{
+    int i;
+    for (i = 0; i < 16; i++)
+        state[i] = state[i] ^ roundKey[i];
+}
 
 // Transformation in the Inverse Cipher that is the inverse of MixColumns().
 void InvMixColumns(){
@@ -139,7 +220,6 @@ void SubWord(uint8_t *temp) {
     }
 }
 
-
 // Key expansion function
 void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
     int Nk = AES_WORDS;
@@ -162,12 +242,50 @@ void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
             temp[j] = expandedKey[(i - 1) * 4 + j];
         }
 
+
+        // Print iteration number
+        //printf("i: %d, ", i);
+
+        // Print content of temp before RotWord operation
+        //printf("temp: ");
+        //for (int k = 0; k < 4; k++) {
+        //    printf("%02X", temp[k]);
+        //}
+
+
+
         if (i % Nk == 0) {
-            // Rotate the word and apply SubWord to the result
+
+            // Apply RotWord operation
             RotWord(temp);
+
+            //Debug RotWord
+            // Print content of temp after RotWord operation
+            //printf(" After RotWord(): ");
+            //for (int k = 0; k < 4; k++) {
+            //    printf("%02X", temp[k]);
+            //}
+            //printf("\n");
+
+            // Apply SubWord operation to the result
             SubWord(temp);
+
+            // Debug Subword
+            //printf(" After SubWord(): ");
+            //for (int k = 0; k < 4; k++) {
+            //    printf("%02X", temp[k]);
+            //}
+            //printf("\n");
+
             // XOR with Rcon
             temp[0] ^= RoundConstants[i / Nk - 1][0]; // Subtract 1 to match the 0-based indexing of arrays
+
+            //Debug After Xor with Rcon
+            printf(" After Xor with Rcon: ");
+            for (int k = 0; k < 4; k++) {
+                printf("%02X", temp[k]);
+            }
+            printf("\n");
         }
 
         // XOR with the word Nk positions earlier
@@ -176,4 +294,76 @@ void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
         }
     }
 }
+
+void print_state(const char *label, const uint8_t *state) {
+    printf("%s ", label);
+    for (int i = 0; i < 16; i++) {
+        printf("%02X", state[i]);
+    }
+    printf("\n");
+}
+
+void Cipher(const uint8_t *in, uint8_t *out, const uint8_t *w) {
+    //uint8_t state[4][AES_COLUMNS];
+    uint8_t state[4*AES_COLUMNS];
+    // 1. Initialize the State
+    // Copy the input into the state array
+    /*for (int i = 0; i < AES_COLUMNS; i++) {
+        for (int j = 0; j < 4; j++) {
+            state[j][i] = in[i * 4 + j];
+        }
+    }
+    */
+    for (int i = 0; i < 4*AES_COLUMNS; i++) {
+            state[i] = in[i];
+    }
+    // 2. Initial Round Key Addition
+    AddRoundKey((uint8_t *) state, w);
+
+    // 3. Main Rounds
+    for (int round = 1; round < AES_ROUNDS; round++) {
+        // SubBytes
+        SubBytes((uint8_t *) state);
+        //printf("round[%2d].s_box ", round);
+        //print_state("",(uint8_t *)state);
+        // ShiftRows
+        ShiftRows((uint8_t *) state);
+
+        // MixColumns
+        MixColumns((uint8_t *) state);
+
+        // AddRoundKey
+        //AddRoundKey((uint8_t *) state, w + round * AES_COLUMNS * 4);
+        AddRoundKey((uint8_t *) state, w + (round + 1) * AES_COLUMNS * 4);
+        //printf("round[%2d].k_sch ", round);
+        //print_state("",out);
+    }
+
+    // 4. Final Round
+    // SubBytes
+    SubBytes((uint8_t *) state);
+    //printf("round[%2d].s_box ", 10);
+    //print_state("",(uint8_t *)state);
+    // ShiftRows
+    ShiftRows((uint8_t *) state);
+
+    // AddRoundKey
+    AddRoundKey((uint8_t *) state, w + AES_ROUNDS * AES_COLUMNS * 4);
+
+    // 5. Output Assignment
+    // Copy the state to the output out
+    /*for (int i = 0; i < AES_COLUMNS; i++) {
+        for (int j = 0; j < 4; j++) {
+            out[i * 4 + j] = state[j][i];
+        }
+    }
+    */
+    for (int i = 0; i < 4*AES_COLUMNS; i++) {
+
+            out[i ] = state[i];
+    }
+}
+
+
+
 #endif //CRYPTOGRAPHYPROJECT_AES_H
