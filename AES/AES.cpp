@@ -21,6 +21,9 @@ int main() {
     // Output outputState
     uint8_t outputState[16];
 
+    // Output decrypted plaintext
+    uint8_t decryptedPlaintext[16];
+
     // Print initial state
     printf("PLAINTEXT:        ");
     print_state("", input);
@@ -30,9 +33,23 @@ int main() {
     // Encrypt the input
     Cipher(input, outputState, expandedKey);
 
+    // Decryption
+    InvCipher(outputState, decryptedPlaintext, expandedKey);
+
     // Output
     printf("round[%2d].output  ", AES_ROUNDS);
     print_state("", outputState);
+
+    // Print decrypted plaintext
+    printf("Decrypted plaintext: ");
+    print_state("", decryptedPlaintext);
+
+    // Compare decrypted plaintext with original plaintext
+    if (memcmp(outputState, decryptedPlaintext, sizeof(outputState)) == 0) {
+        printf("Decryption successful: Plaintext matches decrypted plaintext.\n");
+    } else {
+        printf("Decryption failed: Plaintext does not match decrypted plaintext.\n");
+    }
 
     return 0;
 }
