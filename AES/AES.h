@@ -454,9 +454,9 @@ void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
     uint8_t state[4 * AES_COLUMNS];
 
     // 1. Initialize the State
-    for (int i = 0; i < AES_COLUMNS; i++) {
-        for (int j = 0; j < AES_COLUMNS; j++) {
-            state[i + j * 4] = in[i + j * AES_COLUMNS];
+    for (int c = 0; c < AES_COLUMNS; c++) {
+        for (int r = 0; r < 4; r++) {
+            state[r + 4 * c] = in[r + 4 * c];
         }
     }
 
@@ -495,8 +495,6 @@ void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
         print_key(w + (round + 1) * 16);
     }
 
-
-
     // SubBytes
     SubBytes(state);
     printf("round[%2d].s_box   ", 10);
@@ -510,11 +508,17 @@ void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
     // AddRoundKey
     AddRoundKey(state,w + AES_ROUNDS * 16);
 
-
     // 5. Output Assignment
-    for (int i = 0; i < AES_COLUMNS; i++) {
+    /*for (int i = 0; i < AES_COLUMNS; i++) {
         for (int j = 0; j < 4; j++) {
             out[i + j * AES_COLUMNS] = state[i * 4 + j];
+        }
+    }*/
+
+    // 5. Output Assignment
+    for (int c = 0; c < AES_COLUMNS; c++) {
+        for (int r = 0; r < 4; r++) {
+            out[r + 4 * c] = state[r + 4 * c];
         }
     }
 
@@ -525,9 +529,7 @@ void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
     // Final Output
     printf("round[%2d].OUTPUT2 ", AES_ROUNDS);
     print_state("", out);
+
 }
-
-
-
 
 #endif //CRYPTOGRAPHYPROJECT_AES_H
