@@ -1,10 +1,17 @@
 //
+// Created by Praça on 05/05/2024.
+//
+
+//
 // Created by Praça on 11/04/2024.
 //
 
-#include <cstring>
-#include "AES.h"
 
+
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include "AES.h"
 
 int main() {
 
@@ -22,7 +29,7 @@ int main() {
     uint8_t outputState[16];
 
     // Output decrypted plaintext
-    uint8_t decryptedPlaintext[16];
+    uint8_t decryptedOutput[16];
 
     // Print initial state
     printf("PLAINTEXT:        ");
@@ -34,7 +41,7 @@ int main() {
     Cipher(input, outputState, expandedKey);
 
     // Decryption
-    InvCipher(outputState, decryptedPlaintext, expandedKey);
+    InvCipher(outputState, decryptedOutput, expandedKey);
 
     // Output
     printf("round[%2d].output  ", AES_ROUNDS);
@@ -42,17 +49,12 @@ int main() {
 
     // Print decrypted plaintext
     printf("Decrypted plaintext: ");
-    print_state("", decryptedPlaintext);
+    print_state("", decryptedOutput);
 
-    // Compare decrypted plaintext with original plaintext
-    if (memcmp(outputState, decryptedPlaintext, sizeof(outputState)) == 0) {
-        printf("Decryption successful: Plaintext matches decrypted plaintext.\n");
-    } else {
-        printf("Decryption failed: Plaintext does not match decrypted plaintext.\n");
-    }
 
     return 0;
 }
+
 
 
 
