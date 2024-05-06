@@ -10,8 +10,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include "AES.h"
+#include "RSA.h"
 
 int main() {
 
@@ -50,6 +50,20 @@ int main() {
     // Print decrypted plaintext
     printf("Decrypted plaintext: ");
     print_state("", decryptedOutput);
+
+
+    printf("\nRSAAA TIMEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEe\n");
+
+    int message = 7; // Example message
+    printf("Message to be encrypted: %d\n", message);
+
+    // Encryption
+    int ciphertext = encrypt(message);
+    printf("Ciphertext: %d\n", ciphertext);
+
+    // Decryption
+    int decryptedtext = decrypt(ciphertext);
+    printf("Decrypted text: %d\n", decryptedtext);
 
 
     return 0;
