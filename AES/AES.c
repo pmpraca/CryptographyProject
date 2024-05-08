@@ -3,6 +3,7 @@
 //
 
 #include "AES.h"
+#include <time.h>
 
 // AES S-box
 static const uint8_t SBox[256] = {
@@ -58,26 +59,22 @@ const uint8_t RoundConstants[10][4] = {
         {0x36, 0x00, 0x00, 0x00}
 };
 
-uint8_t galois_multiplication(uint8_t a, int i);
-
-// Function to set the cipher key
-void set_cipher_key(uint8_t *key) {
-    // Cipher key in hexadecimal format
-    uint8_t cipher_key[KEY_SIZE_128] = {
-            0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
-            0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c
-    };
-    // Copy the cipher key to the provided key buffer
-    for (size_t i = 0; i < KEY_SIZE_128; i++) {
-        key[i] = cipher_key[i];
+void gen_key(const char *filename) {
+    FILE *key_file = fopen(filename, "wb");
+    if (key_file == NULL) {
+        perror("Error opening key file");
+        exit(EXIT_FAILURE);
     }
-}
 
-// Function to generate a random AES-128 cipher key
-void gen_key(uint8_t *key) {
-    for (size_t i = 0; i < KEY_SIZE_128; i++) {
-        key[i] = rand() % 256; // Gen rand byte
+    srand(time(NULL));
+
+    uint8_t key[KEY_SIZE_128];
+    for (int i = 0; i < KEY_SIZE_128; i++) {
+        key[i] = rand() % 256;
     }
+
+    fwrite(key, 1, KEY_SIZE_128, key_file);
+    fclose(key_file);
 }
 
 // 4 Subprocesses functions:
@@ -401,6 +398,9 @@ void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
     printf("round[%2d].s_rows  ", 10);
     print_state("", state);
 
+    save_to_file("aes_encrypted_file.txt", state, sizeof(state));
+
+
     // AddRoundKey
     AddRoundKey(state,w + AES_ROUNDS * 16);
 
@@ -460,11 +460,39 @@ void InvCipher(unsigned char *in, unsigned char *out, unsigned char *w) {
             out[r + 4 * c] = state[r + 4 * c];
         }
     }
-    printf("\nDebug out\n");
+
+    save_to_file("aes_decrypt_file.txt", out, sizeof(out));
+    printf("\nDebug decrypted msg\n");
     print_state("",out);
 
 }
 
+void readKeyFromFile(const char* filename, uint8_t* cipherKey) {
+    FILE* keyFile = fopen(filename, "rb");
+    if (keyFile == NULL) {
+        perror("Error opening key file");
+        exit(EXIT_FAILURE);
+    }
 
+    // Read the key from the file
+    size_t bytes_read = fread(cipherKey, 1, KEY_SIZE_128, keyFile);
+    if (bytes_read != KEY_SIZE_128) {
+        fprintf(stderr, "Error reading key from file\n");
+        exit(EXIT_FAILURE);
+    }
 
+    fclose(keyFile);
+}
+
+void save_to_file(const char *filename, const uint8_t *cipher_text, size_t size) {
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
+    }
+
+    fwrite(cipher_text, sizeof(uint8_t), size, file);
+
+    fclose(file);
+}
 

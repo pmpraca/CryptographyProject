@@ -242,6 +242,15 @@ CryptographyProject_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 CryptographyProject_SOURCE_DIR:STATIC=D:/Documentos/UVT/2nd_semester/SC/CryptographyProject
 
+//Path to a library.
+LIB_EAY:FILEPATH=C:/msys64/ucrt64/lib/libcrypto.dll.a
+
+//Path to a file.
+OPENSSL_INCLUDE_DIR:PATH=C:/msys64/ucrt64/include
+
+//Path to a library.
+SSL_EAY:FILEPATH=C:/msys64/ucrt64/lib/libssl.dll.a
+
 
 ########################
 # INTERNAL cache entries
@@ -399,4 +408,12 @@ CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 CMAKE_STRIP-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
+//Details about finding OpenSSL
+FIND_PACKAGE_MESSAGE_DETAILS_OpenSSL:INTERNAL=[C:/msys64/ucrt64/lib/libcrypto.dll.a][C:/msys64/ucrt64/include][c ][v3.2.0()]
+//ADVANCED property for variable: LIB_EAY
+LIB_EAY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: OPENSSL_INCLUDE_DIR
+OPENSSL_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SSL_EAY
+SSL_EAY-ADVANCED:INTERNAL=1
 

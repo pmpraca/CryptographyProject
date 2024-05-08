@@ -51,6 +51,7 @@ int modInv(int a, int m) {
 
 // Function to encrypt a message
 int encrypt(int message) {
+
     return modExp(message, e, n); // send the pubKey(e,n)
 }
 

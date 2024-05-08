@@ -14,10 +14,43 @@
 #include "RSA.h"
 #include "DES.h"
 
+void readInputFromFile(const char* filename, uint8_t* input) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Read input data from file
+    size_t bytes_read = fread(input, sizeof(uint8_t), 16, file); // Assuming input size is 16 bytes (AES state size)
+    if (bytes_read != 16) {
+        if (feof(file)) {
+            fprintf(stderr, "Error: Unexpected end of file\n");
+        } else if (ferror(file)) {
+            perror("Error reading file");
+        }
+        fclose(file);
+        return;
+    }
+
+    fclose(file);
+}
+
+
 int main() {
 
     // Cipher key
-    uint8_t cipherKey[AES_WORDS * 4] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+    //uint8_t cipherKey[AES_WORDS * 4] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+
+    // Cipher key
+    uint8_t cipherKey[AES_WORDS * 4];
+
+    // Generate random key
+    //generateRandomKey(cipherKey, sizeof(cipherKey));
+
+    gen_key("aes_key.txt");
+
+    readKeyFromFile("aes_key.txt", cipherKey);
     // Expanded key
     uint8_t expandedKey[AES_COLUMNS * AES_WORDS * (AES_ROUNDS + 1)];
 
@@ -25,7 +58,10 @@ int main() {
     KeyExpansion(cipherKey, expandedKey);
 
     // Input input message
-    uint8_t input[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+    //uint8_t input[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+    uint8_t input[16];
+    readInputFromFile("message.txt", input);
+
     // Output outputState
     uint8_t outputState[16];
 
