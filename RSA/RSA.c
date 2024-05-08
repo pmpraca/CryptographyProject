@@ -6,6 +6,10 @@
 
 // Function to calculate the modular exponentiation (a^b mod n)
 int modExp(int base, int exponent, int modulus) {
+    printf("Base: %d\n" ,base);
+    printf("Exponent: %d\n" ,exponent);
+    printf("Modulus: %d\n" ,modulus);
+
     int result = 1;
     base = base % modulus;
     while (exponent > 0) {
@@ -18,34 +22,31 @@ int modExp(int base, int exponent, int modulus) {
 }
 
 int modInv(int a, int m) {
-    int m0 = m, t, Q; // Q -> quocient
-    int x0 = 0, x1 = 1;
+    int m0 = m;
+    int y = 0, x = 1;
 
     if (m == 1)
         return 0;
 
-    // Apply extended Euclid Algorithm
     while (a > 1) {
-
-        Q = a / m;
-
-        t = m;
+        // q is quotient
+        int Q = a / m;
+        int t = m;
 
         // m is remainder now, process same as Euclid's algo
         m = a % m, a = t;
+        t = y;
 
-        t = x0;
-
-        x0 = x1 - Q * x0;
-
-        x1 = t;
+        // Update y and x
+        y = x - Q * y;
+        x = t;
     }
 
-    // Make x1 positive
-    if (x1 < 0)
-        x1 += m0;
+    // Make x positive
+    if (x < 0)
+        x += m0;
 
-    return x1;
+    return x;
 }
 
 // Function to encrypt a message
@@ -53,14 +54,10 @@ int encrypt(int message) {
     return modExp(message, e, n); // send the pubKey(e,n)
 }
 
-/*
-// Function to decrypt a message
-int decrypt(int ciphertext) {
-    return modExp(ciphertext, d, n); // prKey(d)
-}*/
-
 // Function to decrypt a message
 int decrypt(int ciphertext) {
     int d = modInv(e, r); // Calculate private exponent d
+    printf("R= %d", r);
+    printf("D= %d\n", d);
     return modExp(ciphertext, d, n); // prKey(d)
 }

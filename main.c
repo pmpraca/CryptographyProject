@@ -24,7 +24,7 @@ int main() {
     // Perform key expansion
     KeyExpansion(cipherKey, expandedKey);
 
-    // Input input
+    // Input input message
     uint8_t input[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
     // Output outputState
     uint8_t outputState[16];
