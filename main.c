@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include "AES.h"
 #include "RSA.h"
+#include "DES.h"
 
 int main() {
 
@@ -54,7 +55,7 @@ int main() {
 
     printf("\nRSAAA TIMEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEe\n");
 
-    int message = 7; // Example message
+    int message = 50; // Example message
     printf("Message to be encrypted: %d\n", message);
 
     // Encryption
@@ -65,6 +66,21 @@ int main() {
     int decryptedtext = decrypt(ciphertext);
     printf("Decrypted text: %d\n", decryptedtext);
 
+    printf("\nDESSS TIMEEEEEEE\n");
+
+    uint64_t input2 = 0x0123456789ABCDEF;
+    uint64_t key = 0x133457799BBCDFF1;
+
+    // Encrypt the input
+    uint64_t encrypted = des_encrypt(input2, key);
+
+    // Decrypt the encrypted data
+    uint64_t decrypted = des_decrypt(encrypted, key);
+
+    // Print the results
+    printf("Original input: 0x%016llX\n", input2);
+    printf("Encrypted data: 0x%016llX\n", encrypted);
+    printf("Decrypted data: 0x%016llX\n", decrypted);
 
     return 0;
 }
