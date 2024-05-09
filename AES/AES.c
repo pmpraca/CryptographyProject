@@ -4,6 +4,7 @@
 
 #include "AES.h"
 #include <time.h>
+#include <string.h>
 
 // AES S-box
 static const uint8_t SBox[256] = {
@@ -73,9 +74,17 @@ void gen_key(const char *filename) {
         key[i] = rand() % 256;
     }
 
+    // Print the generated key for debugging
+    printf("Generated Key:");
+    for (int i = 0; i < KEY_SIZE_128; i++) {
+        printf(" %02x", key[i]);
+    }
+    printf("\n");
+
     fwrite(key, 1, KEY_SIZE_128, key_file);
     fclose(key_file);
 }
+
 
 // 4 Subprocesses functions:
 
@@ -312,11 +321,11 @@ void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
             temp[0] ^= RoundConstants[i / Nk - 1][0]; // Subtract 1 to match the 0-based indexing of arrays
 
             //Debug After Xor with Rcon
-            printf(" After Xor with Rcon: ");
-            for (int k = 0; k < 4; k++) {
-                printf("%02X", temp[k]);
-            }
-            printf("\n");
+            //printf(" After Xor with Rcon: ");
+            //for (int k = 0; k < 4; k++) {
+            //    printf("%02X", temp[k]);
+            //}
+            //printf("\n");
         }
 
         // XOR with the word Nk positions earlier
@@ -354,55 +363,56 @@ void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
     // Initial Round Key Addition
     AddRoundKey(state, w);
 
-    printf("round[%2d].input   ", 0);
-    print_state("", in);
+   // printf("round[%2d].input   ", 0);
+    //print_state("", in);
 
-    printf("round[%2d].k_sch   ", 0);
-    print_state("", w);
+   // printf("round[%2d].k_sch   ", 0);
+    //print_state("", w);
 
     // Main Loop
     for (int round = 1; round <= AES_ROUNDS-1 ; round++) {
-        printf("round[%2d].start   ", round);
-        print_state("", state);
+        //printf("round[%2d].start   ", round);
+        //print_state("", state);
 
         // SubBytes
         SubBytes(state);
-        printf("round[%2d].s_box   ", round);
-        print_state("", state);
+        //printf("round[%2d].s_box   ", round);
+       // print_state("", state);
 
         // ShiftRows
         ShiftRows(state);
-        printf("round[%2d].s_rows  ", round);
-        print_state("", state);
+        //printf("round[%2d].s_rows  ", round);
+       // print_state("", state);
 
         // MixColumns
         MixColumns(state);
-        printf("round[%2d].m_cols  ", round);
-        print_state("", state);
+       // printf("round[%2d].m_cols  ", round);
+        //print_state("", state);
 
         // AddRoundKey
         AddRoundKey(state,w + (round) * 16);
-        printf("round[%2d].k_sch    ", round +1);
-        print_key(w + (round + 1) * 16);
+        printf("round[%2d].k_sch    ", round);
+        print_key(w + (round ) * 16);
+        //printf("round[%2d].k_sch   ", round);
+        //print_state("", w + (round + 1) * 16);
     }
 
     // Final Round
 
     // SubBytes
     SubBytes(state);
-    printf("round[%2d].s_box   ", 10);
-    print_state("", state);
+   // printf("round[%2d].s_box   ", AES_ROUNDS);
+    //print_state("", state);
 
     // ShiftRows
     ShiftRows(state);
-    printf("round[%2d].s_rows  ", 10);
-    print_state("", state);
-
-    save_to_file("aes_encrypted_file.txt", state, sizeof(state));
-
+    //printf("round[%2d].s_rows  ", AES_ROUNDS);
+    //print_state("", state);
 
     // AddRoundKey
     AddRoundKey(state,w + AES_ROUNDS * 16);
+    //printf("round[%2d].k_sch    ", AES_ROUNDS);
+    //print_key(w + (AES_ROUNDS) * 16);
 
     // Output (OUT)
     for (int c = 0; c < AES_COLUMNS; c++) {
@@ -422,8 +432,8 @@ void InvCipher(unsigned char *in, unsigned char *out, unsigned char *w) {
             state[r + 4 * c] = in[r + 4 * c];
         }
     }
-    printf("\nDebug\n");
-    print_state("",state);
+    //printf("\nDebug\n");
+    //print_state("",state);
 
     // Initial Round Key Addition
     AddRoundKey(state, w + AES_ROUNDS * 16);
@@ -461,38 +471,97 @@ void InvCipher(unsigned char *in, unsigned char *out, unsigned char *w) {
         }
     }
 
-    save_to_file("aes_decrypt_file.txt", out, sizeof(out));
-    printf("\nDebug decrypted msg\n");
-    print_state("",out);
+    //printf("Debug decrypted msg\n");
+    //print_state("",out);
 
 }
 
-void readKeyFromFile(const char* filename, uint8_t* cipherKey) {
-    FILE* keyFile = fopen(filename, "rb");
-    if (keyFile == NULL) {
+uint8_t* read_key(const char *filename) {
+    FILE *key_file = fopen(filename, "rb");
+    if (key_file == NULL) {
         perror("Error opening key file");
         exit(EXIT_FAILURE);
     }
 
-    // Read the key from the file
-    size_t bytes_read = fread(cipherKey, 1, KEY_SIZE_128, keyFile);
-    if (bytes_read != KEY_SIZE_128) {
-        fprintf(stderr, "Error reading key from file\n");
+    uint8_t *key = (uint8_t*)malloc(KEY_SIZE_128);
+    if (key == NULL) {
+        perror("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
 
-    fclose(keyFile);
+    fread(key, 1, KEY_SIZE_128, key_file);
+    fclose(key_file);
+
+
+    return key;
 }
 
-void save_to_file(const char *filename, const uint8_t *cipher_text, size_t size) {
-    FILE *file = fopen(filename, "wb");
-    if (file == NULL) {
-        perror("Error opening file");
-        exit(EXIT_FAILURE);
+void aes_encrypt_file(FILE *input_fp, const char *output_file){
+    uint8_t expandedKey[AES_COLUMNS * AES_WORDS * (AES_ROUNDS + 1)];
+    uint8_t messageBlock[AES_BLOCK_SIZE];
+    uint8_t cipherBlock[AES_BLOCK_SIZE];
+
+    gen_key("aes_key.txt");
+
+    uint8_t *aes_key = read_key("aes_key.txt");
+    //int8_t aes_key[AES_WORDS * 4] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+    // Perform key expansion
+    KeyExpansion(aes_key, expandedKey);
+
+    FILE *encryptedFile = fopen(output_file, "wb");
+    if (!encryptedFile) {
+        printf("Error opening output file for writing.\n");
+        return;
     }
 
-    fwrite(cipher_text, sizeof(uint8_t), size, file);
-
-    fclose(file);
+    size_t bytesRead;
+    while ((bytesRead = fread(messageBlock, sizeof(uint8_t), AES_BLOCK_SIZE, input_fp)) > 0) {
+        if (bytesRead < AES_BLOCK_SIZE) {
+            uint8_t paddingSize = AES_BLOCK_SIZE - bytesRead;
+            memset(messageBlock + bytesRead, paddingSize, paddingSize);
+        }
+        // Encrypt the input
+        Cipher(messageBlock, cipherBlock, expandedKey);
+        fwrite(cipherBlock, sizeof(uint8_t), AES_BLOCK_SIZE, encryptedFile);
+    }
+    fclose(encryptedFile);
 }
 
+void aes_decrypt_file(FILE *input_fp, const char *output_file){
+    uint8_t expandedKey[AES_COLUMNS * AES_WORDS * (AES_ROUNDS + 1)];
+    uint8_t decryptedBlock[AES_BLOCK_SIZE]; // Buffer for decrypted block
+
+    uint8_t *aes_key = read_key("aes_key.txt");
+    //uint8_t aes_key[AES_WORDS * 4] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+    // Perform key expansion
+    KeyExpansion(aes_key, expandedKey);
+
+    FILE *decryptedFile = fopen(output_file, "wb");
+    if (!decryptedFile) {
+        printf("Error opening output file for writing.\n");
+        return;
+    }
+
+    // Calculate file size
+    fseek(input_fp, 0L, SEEK_END);
+    long fileSize = ftell(input_fp);
+    fseek(input_fp, 0L, SEEK_SET);
+
+    size_t bytesRead;
+    while ((bytesRead = fread(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE, input_fp)) > 0) {
+
+        InvCipher(decryptedBlock, decryptedBlock, expandedKey);
+
+        if (ftell(input_fp) == fileSize) {
+            int padding = (uint8_t)decryptedBlock[AES_BLOCK_SIZE - 1];
+            if (padding < 0 || padding > AES_BLOCK_SIZE) {
+                printf("Invalid padding size.\n");
+                return;
+            }
+            fwrite(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE - padding, decryptedFile);
+        } else {
+            fwrite(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE, decryptedFile);
+        }
+    }
+    fclose(decryptedFile);
+}

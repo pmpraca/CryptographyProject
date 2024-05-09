@@ -13,84 +13,82 @@
 #include "AES.h"
 #include "RSA.h"
 #include "DES.h"
-
-void readInputFromFile(const char* filename, uint8_t* input) {
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        perror("Error opening file");
-        return;
-    }
-
-    // Read input data from file
-    size_t bytes_read = fread(input, sizeof(uint8_t), 16, file); // Assuming input size is 16 bytes (AES state size)
-    if (bytes_read != 16) {
-        if (feof(file)) {
-            fprintf(stderr, "Error: Unexpected end of file\n");
-        } else if (ferror(file)) {
-            perror("Error reading file");
-        }
-        fclose(file);
-        return;
-    }
-
-    fclose(file);
-}
-
+#include "string.h"
 
 int main() {
+    char input_file[256];
+    char output_file[256];
+    char option[3];
+    int method = 0;
 
-    // Cipher key
-    //uint8_t cipherKey[AES_WORDS * 4] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+/*    printf("Enter input file: ");
+    scanf("%s", input_file);
 
-    // Cipher key
-    uint8_t cipherKey[AES_WORDS * 4];
+    // Open input and output files
+    FILE *input_fp = fopen(input_file, "rb");
+    if (!input_fp) {
+        printf("Error opening input file.\n");
+        return 1;
+    }
 
-    // Generate random key
-    //generateRandomKey(cipherKey, sizeof(cipherKey));
+    printf("You want to Encrypt or Decrypt? ");
+    scanf("%s", option);
 
-    gen_key("aes_key.txt");
+    if(strcmp(option, "e") == 0){
+        method = 0;
+    } else if (strcmp(option, "d") == 0){
+        method = 1;
+    } else {
+        printf("Invalid Option!");
+        fclose(input_fp);
+        return 1;
+    }
 
-    readKeyFromFile("aes_key.txt", cipherKey);
-    // Expanded key
-    uint8_t expandedKey[AES_COLUMNS * AES_WORDS * (AES_ROUNDS + 1)];
+    printf("Enter Output File: ");
+    scanf("%s", output_file);
 
-    // Perform key expansion
-    KeyExpansion(cipherKey, expandedKey);
-
-    // Input input message
-    //uint8_t input[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-    uint8_t input[16];
-    readInputFromFile("message.txt", input);
-
-    // Output outputState
-    uint8_t outputState[16];
-
-    // Output decrypted plaintext
-    uint8_t decryptedOutput[16];
-
-    // Print initial state
-    printf("PLAINTEXT:        ");
-    print_state("", input);
-    printf("KEY:              ");
-    print_state("", cipherKey);
-
-    // Encrypt the input
-    Cipher(input, outputState, expandedKey);
-
-    // Decryption
-    InvCipher(outputState, decryptedOutput, expandedKey);
-
-    // Output
-    printf("round[%2d].output  ", AES_ROUNDS);
-    print_state("", outputState);
-
-    // Print decrypted plaintext
-    printf("Decrypted plaintext: ");
-    print_state("", decryptedOutput);
+    //encrypt
+    if(method == 0) {
+        aes_encrypt_file(input_fp,output_file);
+    } else if (method == 1){
+        aes_decrypt_file(input_fp,output_file);
+    }
+*/
 
 
-    printf("\nRSAAA TIMEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEe\n");
+    printf("\nRSA\n");
 
+    printf("Enter input file: ");
+    scanf("%s", input_file);
+    // Open input and output files
+    FILE *input_fp = fopen(input_file, "rb");
+    if (!input_fp) {
+        printf("Error opening input file.\n");
+        return 1;
+    }
+
+    printf("You want to Encrypt or Decrypt? ");
+    scanf("%s", option);
+    if(strcmp(option, "e") == 0){
+        method = 0;
+    } else if (strcmp(option, "d") == 0){
+        method = 1;
+    } else {
+        printf("Invalid Option!");
+        fclose(input_fp);
+        return 1;
+    }
+
+    printf("Enter Output File: ");
+    scanf("%s", output_file);
+
+    //encrypt
+    if(method == 0) {
+        encrypt(input_fp,output_file);
+    } else if (method == 1){
+        decrypt(input_fp,output_file);
+    }
+/*
     int message = 50; // Example message
     printf("Message to be encrypted: %d\n", message);
 
@@ -101,7 +99,7 @@ int main() {
     // Decryption
     int decryptedtext = decrypt(ciphertext);
     printf("Decrypted text: %d\n", decryptedtext);
-
+*/
     printf("\nDESSS TIMEEEEEEE\n");
 
     uint64_t input2 = 0x0123456789ABCDEF;

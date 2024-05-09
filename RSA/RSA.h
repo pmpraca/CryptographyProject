@@ -7,23 +7,18 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <stdint.h>
+#include <stdbool.h>
 
-#define p   (101) // large prime RANDOM
-#define q   (251) // another large prime
+#define e (65537) // can be either 3, 5, 17, or 65537; the bigger the number the more secure it is
 
-// public key n
-#define n (p*q)
 
-// PHI
-#define r ((p - 1)*(q - 1))
-
-#define e (65537) // can be either 3,5,17 & 65537 the bigger the number the more secure it is
-
-// Function to calculate a^b mod n  (a-> base, b-> exponent)
-//int modExp(int base, int exponent, int modulus);
-int modInv(int a, int m);
-int encrypt(int message);
-int decrypt(int ciphertext);
-
+// Function prototypes
+int generate_random_prime();
+long long int modExp(long long int base, long long int exponent, long long int modulus);
+long long int modInv(long long int a, long long int m);
+void encrypt(FILE *input_fp, const char *output_file);
+void decrypt(FILE *input_fp, const char *output_file);
+void gen_rsa_pk(const char *filename);
 
 #endif //CRYPTOGRAPHYPROJECT_RSA_H

@@ -9,6 +9,7 @@
 #define AES_WORDS 4 // 4, 6 or 8
 #define AES_ROUNDS 10 // 10, 12 or 14
 #define KEY_SIZE_128 16
+#define AES_BLOCK_SIZE 16
 #define KEY_SIZE_192 24
 #define KEY_SIZE_256 32
 
@@ -17,8 +18,6 @@
 #include <stdlib.h>
 
 uint8_t galois_multiplication(uint8_t a, int i);
-void set_cipher_key(uint8_t *key);
-void gen_key(const char *filename);
 void SubBytes(uint8_t *state);
 void ShiftRows(uint8_t *state);
 void MixColumns(uint8_t *state);
@@ -33,7 +32,8 @@ void print_state(const char *label, const uint8_t *state);
 void Cipher(unsigned char *in, unsigned char *out, unsigned char *w);
 void InvCipher(unsigned char *in, unsigned char *out, unsigned char *w);
 void AddRoundKey(unsigned char *state, const unsigned char *roundKey);
-void readKeyFromFile(const char* filename, uint8_t* cipherKey);
-
-void save_to_file(const char *filename, const uint8_t *cipher_text, size_t size);
+void gen_key(const char *filename);
+void aes_encrypt_file(FILE *input_fp, const char *output_file);
+uint8_t* read_key(const char *filename);
+void aes_decrypt_file(FILE *input_fp, const char *output_file);
 #endif //CRYPTOGRAPHYPROJECT_AES_H
