@@ -6,12 +6,11 @@
 #define CRYPTOGRAPHYPROJECT_AES_H
 
 #define AES_COLUMNS 4
-#define AES_WORDS 4 // 4, 6 or 8
-#define AES_ROUNDS 10 // 10, 12 or 14
+#define AES_WORDS 4
+#define AES_ROUNDS 10
 #define KEY_SIZE_128 16
 #define AES_BLOCK_SIZE 16
-#define KEY_SIZE_192 24
-#define KEY_SIZE_256 32
+
 
 #include <stdint.h>
 #include <stdio.h>
@@ -32,8 +31,8 @@ void print_state(const char *label, const uint8_t *state);
 void Cipher(unsigned char *in, unsigned char *out, unsigned char *w);
 void InvCipher(unsigned char *in, unsigned char *out, unsigned char *w);
 void AddRoundKey(unsigned char *state, const unsigned char *roundKey);
-void gen_key(const char *filename);
+void gen_aes_key(const char *filename);
+uint8_t* read_aes_key(const char *filename);
 void aes_encrypt_file(FILE *input_fp, const char *output_file);
-uint8_t* read_key(const char *filename);
 void aes_decrypt_file(FILE *input_fp, const char *output_file);
 #endif //CRYPTOGRAPHYPROJECT_AES_H

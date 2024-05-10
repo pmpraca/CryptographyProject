@@ -3,6 +3,11 @@
 //
 
 #include "DES.h"
+#include <time.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // Define the same constants as in the online implementation
 #define LB64_MASK 0x0000000000000001
@@ -265,3 +270,239 @@ uint64_t des_encrypt(uint64_t input, uint64_t key) {
 uint64_t des_decrypt(uint64_t input, uint64_t key) {
     return des(input, key, 'd');
 }
+
+void gen_des_key(const char *filename) {
+    FILE *key_file = fopen(filename, "wb");
+    if (key_file == NULL) {
+        perror("Error opening key file");
+        exit(EXIT_FAILURE);
+    }
+
+    srand(time(NULL));
+
+    uint8_t key[DES_BLOCK_SIZE];
+    for (int i = 0; i < DES_BLOCK_SIZE; i++) {
+        key[i] = rand() % 256;
+    }
+
+    // Print the generated key for debugging
+    printf("Generated Key:");
+    for (int i = 0; i < DES_BLOCK_SIZE; i++) {
+        printf(" %02x", key[i]);
+    }
+    printf("\n");
+
+    fwrite(key, 1, DES_BLOCK_SIZE, key_file);
+    fclose(key_file);
+}
+
+uint8_t* read_des_key(const char *filename) {
+    printf("Opening file: %s\n", filename);
+    FILE *key_file = fopen(filename, "rb");
+    if (key_file == NULL) {
+        perror("Error opening key fileeeee");
+        exit(EXIT_FAILURE);
+    }
+
+    uint8_t *key = (uint8_t*)malloc(DES_BLOCK_SIZE);
+    if (key == NULL) {
+        perror("Memory allocation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    fread(key, 1, DES_BLOCK_SIZE, key_file);
+    fclose(key_file);
+
+
+    return key;
+}
+/*
+// Function to encrypt a file using DES
+void des_encrypt_file(FILE *input_fp, const char *output_file) {
+    FILE *encryptedFile = fopen(output_file, "wb");
+    if (!encryptedFile) {
+        printf("Error opening output file for writing.\n");
+        return;
+    }
+    gen_des_key("des_key.txt");
+    uint8_t inputBuffer[DES_BLOCK_SIZE];
+    uint8_t outputBuffer[DES_BLOCK_SIZE];
+    printf("1");
+    uint64_t *key = (uint64_t *) read_des_key("des_key.txt");
+    // Read input file in blocks and encrypt each block
+    while (fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp) == DES_BLOCK_SIZE) {
+        uint64_t inputBlock = *((uint64_t*)inputBuffer);
+        uint64_t encryptedBlock = des_encrypt(inputBlock, (uint64_t) key); // Call your DES encryption function
+        *((uint64_t*)outputBuffer) = encryptedBlock;
+        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, encryptedFile);
+    }
+
+    fclose(encryptedFile);
+}*/
+/*
+void des_encrypt_file(FILE *input_fp, const char *output_file) {
+    FILE *encryptedFile = fopen(output_file, "wb");
+    if (!encryptedFile) {
+        printf("Error opening output file for writing.\n");
+        return;
+    }
+
+
+    uint64_t key = 0x133457799BBCDFF1; // Example key, replace with your key
+    // Generate or read DES key here
+
+    uint8_t inputBuffer[DES_BLOCK_SIZE];
+    uint8_t outputBuffer[DES_BLOCK_SIZE];
+
+    // Read input file in blocks and encrypt each block
+    size_t bytesRead;
+    while ((bytesRead = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
+        if (bytesRead < DES_BLOCK_SIZE) {
+            // Pad the last block if necessary
+            for (size_t i = bytesRead; i < DES_BLOCK_SIZE; ++i) {
+                inputBuffer[i] = 0; // You may want to choose a proper padding strategy
+            }
+        }
+
+        uint64_t inputBlock = *((uint64_t*)inputBuffer);
+        uint64_t encryptedBlock = des_encrypt(inputBlock, key); // Call your DES encryption function
+        *((uint64_t*)outputBuffer) = encryptedBlock;
+
+        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, encryptedFile);
+    }
+
+    fclose(encryptedFile);
+}*/
+
+void des_encrypt_file(FILE *input_fp, const char *output_file) {
+    FILE *encryptedFile = fopen(output_file, "wb");
+    if (!encryptedFile) {
+        printf("Error opening output file for writing.\n");
+        return;
+    }
+
+    gen_des_key("key_file.txt");
+    // Generate or read DES key
+    uint8_t *key = read_des_key("des_key.txt"); // or gen_des_key(key_file);
+
+    uint8_t inputBuffer[DES_BLOCK_SIZE];
+    uint8_t outputBuffer[DES_BLOCK_SIZE];
+
+    // Read input file in blocks and encrypt each block
+    size_t bytesRead;
+    while ((bytesRead = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
+        if (bytesRead < DES_BLOCK_SIZE) {
+            // Pad the last block if necessary
+            for (size_t i = bytesRead; i < DES_BLOCK_SIZE; ++i) {
+                inputBuffer[i] = 0; // You may want to choose a proper padding strategy
+            }
+        }
+
+        uint64_t inputBlock = *((uint64_t*)inputBuffer);
+        uint64_t encryptedBlock = des_encrypt(inputBlock, *((uint64_t*)key)); // Call your DES encryption function with the key
+        *((uint64_t*)outputBuffer) = encryptedBlock;
+
+        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, encryptedFile);
+    }
+
+    fclose(encryptedFile);
+    free(key); // Free dynamically allocated memory for the key
+}
+/*
+// Function to decrypt a file using DES
+void des_decrypt_file(FILE *input_fp, const char *output_file) {
+    FILE *decryptedFile = fopen(output_file, "wb");
+    if (!decryptedFile) {
+        printf("Error opening output file for writing.\n");
+        return;
+    }
+
+    uint8_t inputBuffer[DES_BLOCK_SIZE];
+    uint8_t outputBuffer[DES_BLOCK_SIZE];
+
+    uint64_t *key = (uint64_t *) read_des_key("des_key.txt");
+
+    // Read input file in blocks and decrypt each block
+    while (fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp) == DES_BLOCK_SIZE) {
+        uint64_t inputBlock = *((uint64_t*)inputBuffer);
+        uint64_t decryptedBlock = des_decrypt(inputBlock, (uint64_t) key); // Call your DES decryption function
+        *((uint64_t*)outputBuffer) = decryptedBlock;
+        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, decryptedFile);
+    }
+
+    fclose(decryptedFile);
+}*/
+
+void des_decrypt_file(FILE *input_fp, const char *output_file) {
+    FILE *decryptedFile = fopen(output_file, "wb");
+    if (!decryptedFile) {
+        printf("Error opening output file for writing.\n");
+        return;
+    }
+
+    // Load DES key from file
+    uint8_t *key = read_des_key("des_key.txt");
+
+    uint8_t inputBuffer[DES_BLOCK_SIZE];
+    uint8_t outputBuffer[DES_BLOCK_SIZE];
+
+    // Read input file in blocks and decrypt each block
+    size_t bytesRead;
+    while ((bytesRead = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
+        uint64_t inputBlock = *((uint64_t*)inputBuffer);
+        uint64_t decryptedBlock = des_decrypt(inputBlock, *((uint64_t*)key)); // Call your DES decryption function with the key
+
+        // If it's the last block, remove padding
+        if (bytesRead < DES_BLOCK_SIZE) {
+            // Remove padding from the last block
+            // You need to implement a proper padding strategy and handle it accordingly
+            // This is just an example of removing zero padding
+            while (decryptedBlock & 0xFF == 0) {
+                decryptedBlock >>= 8;
+            }
+        }
+
+        *((uint64_t*)outputBuffer) = decryptedBlock;
+        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, decryptedFile);
+    }
+
+    fclose(decryptedFile);
+    free(key); // Free dynamically allocated memory for the key
+}
+/*
+void des_decrypt_file(FILE *input_fp, const char *output_file) {
+    FILE *decryptedFile = fopen(output_file, "wb");
+    if (!decryptedFile) {
+        printf("Error opening output file for writing.\n");
+        return;
+    }
+
+    uint8_t inputBuffer[DES_BLOCK_SIZE];
+    uint8_t outputBuffer[DES_BLOCK_SIZE];
+
+    // Load DES key from file
+    uint64_t key = 0x133457799BBCDFF1; // Example key, replace with your key
+
+    // Read input file in blocks and decrypt each block
+    size_t bytesRead;
+    while ((bytesRead = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
+        uint64_t inputBlock = *((uint64_t*)inputBuffer);
+        uint64_t decryptedBlock = des_decrypt(inputBlock, key); // Call your DES decryption function
+
+        // If it's the last block, remove padding
+        if (bytesRead < DES_BLOCK_SIZE) {
+            // Remove padding from the last block
+            // You need to implement a proper padding strategy and handle it accordingly
+            // This is just an example of removing zero padding
+            while (decryptedBlock & 0xFF == 0) {
+                decryptedBlock >>= 8;
+            }
+        }
+
+        *((uint64_t*)outputBuffer) = decryptedBlock;
+        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, decryptedFile);
+    }
+
+    fclose(decryptedFile);
+}*/
+

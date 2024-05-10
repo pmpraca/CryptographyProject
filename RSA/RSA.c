@@ -8,12 +8,6 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include "RSA.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <time.h>
-
 bool is_prime(int num) {
     if (num <= 1) return false;
     if (num <= 3) return true;
@@ -181,5 +175,3 @@ void gen_rsa_pk(const char *filename) {
     fprintf(fp, "%lld\n", d);
     fclose(fp);
 }
-
-

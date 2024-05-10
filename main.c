@@ -21,7 +21,8 @@ int main() {
     char option[3];
     int method = 0;
 
-/*    printf("Enter input file: ");
+    /*
+    printf("Enter input file: ");
     scanf("%s", input_file);
 
     // Open input and output files
@@ -54,7 +55,7 @@ int main() {
         aes_decrypt_file(input_fp,output_file);
     }
 */
-
+/*
 
     printf("\nRSA\n");
 
@@ -87,7 +88,7 @@ int main() {
         encrypt(input_fp,output_file);
     } else if (method == 1){
         decrypt(input_fp,output_file);
-    }
+    }*/
 /*
     int message = 50; // Example message
     printf("Message to be encrypted: %d\n", message);
@@ -102,6 +103,37 @@ int main() {
 */
     printf("\nDESSS TIMEEEEEEE\n");
 
+    printf("Enter input file: ");
+    scanf("%s", input_file);
+    // Open input and output files
+    FILE *input_fp = fopen(input_file, "rb");
+    if (!input_fp) {
+        printf("Error opening input fileeeee.\n");
+        return 1;
+    }
+
+    printf("You want to Encrypt or Decrypt? ");
+    scanf("%s", option);
+    if(strcmp(option, "e") == 0){
+        method = 0;
+    } else if (strcmp(option, "d") == 0){
+        method = 1;
+    } else {
+        printf("Invalid Option!");
+        fclose(input_fp);
+        return 1;
+    }
+
+    printf("Enter Output File: ");
+    scanf("%s", output_file);
+
+    //encrypt
+    if(method == 0) {
+        des_encrypt_file(input_fp,  output_file);
+    } else if (method == 1){
+        des_decrypt_file(input_fp,  output_file);
+    }
+/*
     uint64_t input2 = 0x0123456789ABCDEF;
     uint64_t key = 0x133457799BBCDFF1;
 
@@ -115,7 +147,7 @@ int main() {
     printf("Original input: 0x%016llX\n", input2);
     printf("Encrypted data: 0x%016llX\n", encrypted);
     printf("Decrypted data: 0x%016llX\n", decrypted);
-
+*/
     return 0;
 }
 

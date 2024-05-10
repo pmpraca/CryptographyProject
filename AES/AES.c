@@ -46,7 +46,7 @@ static const uint8_t InvSBox[256] = {
         0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
 };
 
-// Define round constants for AES-128 key expansion
+// Round constants for key expansion (AES 128)
 const uint8_t RoundConstants[10][4] = {
         {0x01, 0x00, 0x00, 0x00},
         {0x02, 0x00, 0x00, 0x00},
@@ -60,10 +60,10 @@ const uint8_t RoundConstants[10][4] = {
         {0x36, 0x00, 0x00, 0x00}
 };
 
-void gen_key(const char *filename) {
+void gen_aes_key(const char *filename) {
     FILE *key_file = fopen(filename, "wb");
     if (key_file == NULL) {
-        perror("Error opening key file");
+        perror("ERROR - KEY FILE");
         exit(EXIT_FAILURE);
     }
 
@@ -74,12 +74,12 @@ void gen_key(const char *filename) {
         key[i] = rand() % 256;
     }
 
-    // Print the generated key for debugging
-    printf("Generated Key:");
-    for (int i = 0; i < KEY_SIZE_128; i++) {
-        printf(" %02x", key[i]);
-    }
-    printf("\n");
+    // debug generated key
+    //printf("KEY:");
+    //for (int i = 0; i < KEY_SIZE_128; i++) {
+    //    printf(" %02x", key[i]);
+    //}
+    //printf("\n");
 
     fwrite(key, 1, KEY_SIZE_128, key_file);
     fclose(key_file);
@@ -88,6 +88,7 @@ void gen_key(const char *filename) {
 
 // 4 Subprocesses functions:
 
+// from fips
 // Transformation in the Cipher that processes the State using a non­
 // linear byte substitution table (S-box) that operates on each of the
 // State bytes independently.
@@ -99,7 +100,7 @@ void SubBytes(uint8_t *state) {
     }
 }
 
-
+// from fips
 // Transformation in the Cipher that processes the State by cyclically
 // shifting the last three rows of the State by different offsets.
 
@@ -107,15 +108,17 @@ void SubBytes(uint8_t *state) {
 void ShiftRows(uint8_t *state) {
     uint8_t temp;
 
-    // Row 1: No shift
-    // Row 2: Left shift by 1
+    // 1
+    // Dont touch here
+
+    // 2
     temp = state[1];
     state[1] = state[5];
     state[5] = state[9];
     state[9] = state[13];
     state[13] = temp;
 
-    // Row 3: Left shift by 2
+    // 3
     temp = state[2];
     state[2] = state[10];
     state[10] = temp;
@@ -123,7 +126,7 @@ void ShiftRows(uint8_t *state) {
     state[6] = state[14];
     state[14] = temp;
 
-    // Row 4: Left shift by 3
+    // 4
     temp = state[15];
     state[15] = state[11];
     state[11] = state[7];
@@ -132,11 +135,11 @@ void ShiftRows(uint8_t *state) {
 }
 
 /*
+ * from fips
  Transformation in the Cipher that takes all of the columns of the
  State and mixes their data (independently of one another) to
  produce new columns.
 */
-
 
 void MixColumns(uint8_t *state) {
     uint8_t a, b, c, d;
@@ -154,25 +157,16 @@ void MixColumns(uint8_t *state) {
 }
 
 
-uint8_t xtime(uint8_t x) {
-    return ((x << 1) ^ (((x >> 7) & 1) * 0x1b));
-}
 
-void AddRoundKey(unsigned char *state, const unsigned char *roundKey)
+void    AddRoundKey(unsigned char *state, const unsigned char *roundKey)
 {
     int i;
     for (i = 0; i < 16; i++)
         state[i] = state[i] ^ roundKey[i];
 }
 
-/*
-// Transformation in the Cipher and Inverse Cipher in which a Round
-// Key is added to the State using an XOR operation. The length of a
-// Round Key equals the size of the State (i.e., for Nb = 4, the Round
-// Key length equals 128 bits/16 bytes).
-*/
+// Inverse Methods
 
-// Transformation in the Inverse Cipher that is the inverse of MixColumns().
 void InvMixColumns(uint8_t *state) {
     uint8_t a, b, c, d;
     for (int i = 0; i < AES_COLUMNS; ++i) {
@@ -188,6 +182,7 @@ void InvMixColumns(uint8_t *state) {
     }
 }
 
+
 uint8_t galois_multiplication(uint8_t a, int b) {
     uint8_t result = 0;
     while (b) {
@@ -195,7 +190,7 @@ uint8_t galois_multiplication(uint8_t a, int b) {
             result ^= a;
         }
         if (a & 0x80) {
-            a = (a << 1) ^ 0x1b; // XOR with the irreducible polynomial x^8 + x^4 + x^3 + x + 1
+            a = (a << 1) ^ 0x1b;
         } else {
             a <<= 1;
         }
@@ -204,19 +199,20 @@ uint8_t galois_multiplication(uint8_t a, int b) {
     return result;
 }
 
-// Transformation in the Inverse Cipher that is the inverse of ShiftRows().
 void InvShiftRows(uint8_t *state){
     uint8_t temp;
 
-    // Row 1: No shift
-    // Row 2: Right shift by 1
+    // 1
+    // nahhh
+
+    // 2
     temp = state[13];
     state[13] = state[9];
     state[9] = state[5];
     state[5] = state[1];
     state[1] = temp;
 
-    // Row 3: Right shift by 2
+    // 3
     temp = state[10];
     state[10] = state[2];
     state[2] = temp;
@@ -224,7 +220,7 @@ void InvShiftRows(uint8_t *state){
     state[14] = state[6];
     state[6] = temp;
 
-    // Row 4: Right shift by 3
+    // 4
     temp = state[3];
     state[3] = state[7];
     state[7] = state[11];
@@ -232,7 +228,6 @@ void InvShiftRows(uint8_t *state){
     state[15] = temp;
 };
 
-// Transformation in the Inverse Cipher that is the inverse of SubBytes().
 void InvSubBytes(uint8_t *state) {
     for (int i = 0; i < AES_COLUMNS * 4; i++) {
         state[i] = InvSBox[state[i]];
@@ -244,24 +239,25 @@ void InvSubBytes(uint8_t *state) {
 // Function used in the Key Expansion routine that takes a four-byte
 // word and performs a cyclic permutation.
 void RotWord(uint8_t *temp) {
-    uint8_t temp_byte = temp[0]; // Store the first byte temporarily
+    uint8_t temp_byte = temp[0]; // first byte - temp
     for (int i = 0; i < 3; i++) {
         temp[i] = temp[i + 1]; // Shift each byte to the left
     }
     temp[3] = temp_byte; // Place the first byte at the end
 }
 
-// Function used in the Key Expansion routine that takes a four-byte
-// input word and applies an S-box to each of the four bytes to
+// Takes a four-byte input word and applies an S-box to each of the four bytes to
 // produce an output word.
 void SubWord(uint8_t *temp) {
     for (int i = 0; i < 4; i++) {
-        temp[i] = SBox[temp[i]]; // Replace each byte with its corresponding value from the S-box
+        temp[i] = SBox[temp[i]];
     }
 }
 
-// Key expansion function
-void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
+// Key expansion
+
+void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) { // Check pseudo code from fips
+    // Easier to read from fips pdf...
     int Nk = AES_WORDS;
     int Nb = AES_COLUMNS;
     int Nr = AES_ROUNDS;
@@ -282,7 +278,7 @@ void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
             temp[j] = expandedKey[(i - 1) * 4 + j];
         }
 
-
+        // debug
         // Print iteration number
         //printf("i: %d, ", i);
 
@@ -296,7 +292,6 @@ void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
 
         if (i % Nk == 0) {
 
-            // Apply RotWord operation
             RotWord(temp);
 
             //Debug RotWord
@@ -318,7 +313,7 @@ void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
             //printf("\n");
 
             // XOR with Rcon
-            temp[0] ^= RoundConstants[i / Nk - 1][0]; // Subtract 1 to match the 0-based indexing of arrays
+            temp[0] ^= RoundConstants[i / Nk - 1][0];
 
             //Debug After Xor with Rcon
             //printf(" After Xor with Rcon: ");
@@ -328,13 +323,14 @@ void KeyExpansion(const uint8_t *cipherKey, uint8_t *expandedKey) {
             //printf("\n");
         }
 
-        // XOR with the word Nk positions earlier
+        // XOR with the word Nk positions before
         for (j = 0; j < 4; j++) {
             expandedKey[i * 4 + j] = expandedKey[(i - Nk) * 4 + j] ^ temp[j];
         }
     }
 }
 
+// Used for debug
 void print_key(const uint8_t *key) {
     for (int i = 0; i < 16; i++) {
         printf("%02X", key[i]);
@@ -342,6 +338,7 @@ void print_key(const uint8_t *key) {
     printf("\n");
 }
 
+// Used for debug
 void print_state(const char *label, const uint8_t *state) {
     printf("%s ", label);
     for (int i = 0; i < 16; i++) {
@@ -349,6 +346,7 @@ void print_state(const char *label, const uint8_t *state) {
     }
     printf("\n");
 }
+
 
 void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
     uint8_t state[4 * AES_COLUMNS];
@@ -360,7 +358,7 @@ void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
         }
     }
 
-    // Initial Round Key Addition
+    // Initial Round key addition
     AddRoundKey(state, w);
 
    // printf("round[%2d].input   ", 0);
@@ -374,42 +372,36 @@ void Cipher(unsigned char *in, unsigned char *out, unsigned char *w) {
         //printf("round[%2d].start   ", round);
         //print_state("", state);
 
-        // SubBytes
         SubBytes(state);
         //printf("round[%2d].s_box   ", round);
-       // print_state("", state);
-
-        // ShiftRows
-        ShiftRows(state);
-        //printf("round[%2d].s_rows  ", round);
-       // print_state("", state);
-
-        // MixColumns
-        MixColumns(state);
-       // printf("round[%2d].m_cols  ", round);
         //print_state("", state);
 
-        // AddRoundKey
+        ShiftRows(state);
+        //printf("round[%2d].s_rows  ", round);
+        // print_state("", state);
+
+        MixColumns(state);
+        // printf("round[%2d].m_cols  ", round);
+        //print_state("", state);
+
+        // AddRoundKey considering the 128 bits
         AddRoundKey(state,w + (round) * 16);
-        printf("round[%2d].k_sch    ", round);
+        //printf("round[%2d].k_sch    ", round);
         print_key(w + (round ) * 16);
         //printf("round[%2d].k_sch   ", round);
         //print_state("", w + (round + 1) * 16);
     }
 
     // Final Round
-
-    // SubBytes
     SubBytes(state);
-   // printf("round[%2d].s_box   ", AES_ROUNDS);
+    // printf("round[%2d].s_box   ", AES_ROUNDS);
     //print_state("", state);
 
-    // ShiftRows
     ShiftRows(state);
     //printf("round[%2d].s_rows  ", AES_ROUNDS);
     //print_state("", state);
 
-    // AddRoundKey
+    // AddRoundKey considering the 16 bytes
     AddRoundKey(state,w + AES_ROUNDS * 16);
     //printf("round[%2d].k_sch    ", AES_ROUNDS);
     //print_key(w + (AES_ROUNDS) * 16);
@@ -435,33 +427,18 @@ void InvCipher(unsigned char *in, unsigned char *out, unsigned char *w) {
     //printf("\nDebug\n");
     //print_state("",state);
 
-    // Initial Round Key Addition
     AddRoundKey(state, w + AES_ROUNDS * 16);
 
-    // Main Loop
     for (int round = AES_ROUNDS - 1; round >= 1; round--) {
-        // InvShiftRows
         InvShiftRows(state);
-
-        // InvSubBytes
         InvSubBytes(state);
-
-        // AddRoundKey
         AddRoundKey(state, w + (round) * 16);
-
-        // InvMixColumns
         InvMixColumns(state);
     }
 
     // Final Round
-
-    // InvShiftRows
     InvShiftRows(state);
-
-    // InvSubBytes
     InvSubBytes(state);
-
-    // AddRoundKey
     AddRoundKey(state, w);
 
     // Output (OUT)
@@ -476,10 +453,10 @@ void InvCipher(unsigned char *in, unsigned char *out, unsigned char *w) {
 
 }
 
-uint8_t* read_key(const char *filename) {
+uint8_t* read_aes_key(const char *filename) {
     FILE *key_file = fopen(filename, "rb");
     if (key_file == NULL) {
-        perror("Error opening key file");
+        perror("ERROR - KEY FILE");
         exit(EXIT_FAILURE);
     }
 
@@ -496,72 +473,81 @@ uint8_t* read_key(const char *filename) {
     return key;
 }
 
-void aes_encrypt_file(FILE *input_fp, const char *output_file){
+void aes_encrypt_file(FILE *msg_file, const char *encrypted_msg_file){
+    FILE *f;
+    size_t bytes;
     uint8_t expandedKey[AES_COLUMNS * AES_WORDS * (AES_ROUNDS + 1)];
-    uint8_t messageBlock[AES_BLOCK_SIZE];
+    uint8_t msgBlock[AES_BLOCK_SIZE];
     uint8_t cipherBlock[AES_BLOCK_SIZE];
 
-    gen_key("aes_key.txt");
+    gen_aes_key("aes_key.txt");
 
-    uint8_t *aes_key = read_key("aes_key.txt");
+    // Reads key and saves it into a file
+    uint8_t *aes_key = read_aes_key("aes_key.txt");
+
+    // Debug with hardcoded key
     //int8_t aes_key[AES_WORDS * 4] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
-    // Perform key expansion
+
     KeyExpansion(aes_key, expandedKey);
 
-    FILE *encryptedFile = fopen(output_file, "wb");
-    if (!encryptedFile) {
-        printf("Error opening output file for writing.\n");
+
+    f = fopen(encrypted_msg_file, "wb");
+    if (!f) {
+        printf("ERROR - file opening in encrypt aes message (in file) \n");
         return;
     }
 
-    size_t bytesRead;
-    while ((bytesRead = fread(messageBlock, sizeof(uint8_t), AES_BLOCK_SIZE, input_fp)) > 0) {
-        if (bytesRead < AES_BLOCK_SIZE) {
-            uint8_t paddingSize = AES_BLOCK_SIZE - bytesRead;
-            memset(messageBlock + bytesRead, paddingSize, paddingSize);
+    while ((bytes = fread(msgBlock, sizeof(uint8_t), AES_BLOCK_SIZE, msg_file)) > 0) {
+        if (bytes < AES_BLOCK_SIZE) {
+            uint8_t paddingSize = AES_BLOCK_SIZE - bytes;
+            memset(msgBlock + bytes, paddingSize, paddingSize);
         }
         // Encrypt the input
-        Cipher(messageBlock, cipherBlock, expandedKey);
-        fwrite(cipherBlock, sizeof(uint8_t), AES_BLOCK_SIZE, encryptedFile);
+        Cipher(msgBlock, cipherBlock, expandedKey);
+        fwrite(cipherBlock, sizeof(uint8_t), AES_BLOCK_SIZE, f);
     }
-    fclose(encryptedFile);
+    fclose(f);
 }
 
-void aes_decrypt_file(FILE *input_fp, const char *output_file){
+void aes_decrypt_file(FILE *encrypted_msg_file, const char *decrypted_msg_file){
+    size_t bytes;
+    FILE *f;
     uint8_t expandedKey[AES_COLUMNS * AES_WORDS * (AES_ROUNDS + 1)];
     uint8_t decryptedBlock[AES_BLOCK_SIZE]; // Buffer for decrypted block
 
-    uint8_t *aes_key = read_key("aes_key.txt");
+    uint8_t *aes_key = read_aes_key("aes_key.txt");
+
+    // Debug
     //uint8_t aes_key[AES_WORDS * 4] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
     // Perform key expansion
     KeyExpansion(aes_key, expandedKey);
 
-    FILE *decryptedFile = fopen(output_file, "wb");
-    if (!decryptedFile) {
-        printf("Error opening output file for writing.\n");
+
+    f = fopen(decrypted_msg_file, "wb");
+    if (!f) {
+        printf("ERROR - file opening in decrypt aes message (in file) \n");
         return;
     }
 
     // Calculate file size
-    fseek(input_fp, 0L, SEEK_END);
-    long fileSize = ftell(input_fp);
-    fseek(input_fp, 0L, SEEK_SET);
+    fseek(encrypted_msg_file, 0L, SEEK_END);
+    long fileSize = ftell(encrypted_msg_file);
+    fseek(encrypted_msg_file, 0L, SEEK_SET);
 
-    size_t bytesRead;
-    while ((bytesRead = fread(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE, input_fp)) > 0) {
+    while ((bytes = fread(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE, encrypted_msg_file)) > 0) {
 
         InvCipher(decryptedBlock, decryptedBlock, expandedKey);
 
-        if (ftell(input_fp) == fileSize) {
+        if (ftell(encrypted_msg_file) == fileSize) {
             int padding = (uint8_t)decryptedBlock[AES_BLOCK_SIZE - 1];
             if (padding < 0 || padding > AES_BLOCK_SIZE) {
-                printf("Invalid padding size.\n");
+                printf("ERROR - invalid padding size in decrypt msg (in file).\n");
                 return;
             }
-            fwrite(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE - padding, decryptedFile);
+            fwrite(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE - padding, f);
         } else {
-            fwrite(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE, decryptedFile);
+            fwrite(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE, f);
         }
     }
-    fclose(decryptedFile);
+    fclose(f);
 }
