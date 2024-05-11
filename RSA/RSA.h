@@ -17,8 +17,8 @@
 int generate_random_prime();
 long long int modExp(long long int base, long long int exponent, long long int modulus);
 long long int modInv(long long int a, long long int m);
-void encrypt(FILE *input_fp, const char *output_file);
-void decrypt(FILE *input_fp, const char *output_file);
+void rsa_encrypt(FILE *input_fp, const char *output_file);
+void rsa_decrypt(FILE *input_fp, const char *output_file);
 void gen_rsa_pk(const char *filename);
 
 #endif //CRYPTOGRAPHYPROJECT_RSA_H

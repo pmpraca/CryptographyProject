@@ -493,7 +493,7 @@ void aes_encrypt_file(FILE *msg_file, const char *encrypted_msg_file){
 
     f = fopen(encrypted_msg_file, "wb");
     if (!f) {
-        printf("ERROR - file opening in encrypt aes message (in file) \n");
+        printf("ERROR - file opening in rsa_encrypt aes message (in file) \n");
         return;
     }
 
@@ -525,7 +525,7 @@ void aes_decrypt_file(FILE *encrypted_msg_file, const char *decrypted_msg_file){
 
     f = fopen(decrypted_msg_file, "wb");
     if (!f) {
-        printf("ERROR - file opening in decrypt aes message (in file) \n");
+        printf("ERROR - file opening in rsa_decrypt aes message (in file) \n");
         return;
     }
 
@@ -541,7 +541,7 @@ void aes_decrypt_file(FILE *encrypted_msg_file, const char *decrypted_msg_file){
         if (ftell(encrypted_msg_file) == fileSize) {
             int padding = (uint8_t)decryptedBlock[AES_BLOCK_SIZE - 1];
             if (padding < 0 || padding > AES_BLOCK_SIZE) {
-                printf("ERROR - invalid padding size in decrypt msg (in file).\n");
+                printf("ERROR - invalid padding size in rsa_decrypt msg (in file).\n");
                 return;
             }
             fwrite(decryptedBlock, sizeof(uint8_t), AES_BLOCK_SIZE - padding, f);

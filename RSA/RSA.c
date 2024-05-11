@@ -71,47 +71,9 @@ long long int modInv(long long int a, long long int m) {
 
     return x;
 }
-/*
-// Function to encrypt a message WORKS
-void encrypt(FILE *input_fp, const char *output_file) {
-    // Generate RSA public key and store it in rsa_key.txt
-    gen_rsa_pk("rsa_key.txt");
 
-    // Read n
-    FILE *rsa_pk;
-    rsa_pk = fopen("rsa_key.txt", "r");
-    if (rsa_pk == NULL) {
-        printf("Error: Unable to open rsa_key.txt.\n");
-        return; // Error handling
-    }
-
-    long long int n;
-    fscanf(rsa_pk, "%lld", &n);
-    fclose(rsa_pk);
-
-    // Encrypt the message from the input file using n and e
-    char message[1000];
-    while (fgets(message, sizeof(message), input_fp) != NULL) {
-        int len = strlen(message);
-        for (int i = 0; i < len; i++) {
-            if (isspace(message[i])) continue; // Skip spaces
-            long long int encrypted_message = modExp(message[i], e, n);
-            // Write the encrypted message to the output file
-            FILE *output_fp;
-            output_fp = fopen(output_file, "a"); // Use "a" to append instead of overwriting
-            if (output_fp == NULL) {
-                printf("Error: Unable to open %s for writing.\n", output_file);
-                return; // Error handling
-            }
-            fprintf(output_fp, "%lld ", encrypted_message);
-            fclose(output_fp);
-        }
-    }
-}
-*/
-
-// Function to encrypt a message
-void encrypt(FILE *input_fp, const char *output_file) {
+// Function to rsa_encrypt a message
+void rsa_encrypt(FILE *input_fp, const char *output_file) {
     // Generate RSA public key and store it in rsa_key.txt
      gen_rsa_pk("rsa_key.txt");
 
@@ -154,8 +116,8 @@ void encrypt(FILE *input_fp, const char *output_file) {
     }
 }
 
-// Function to decrypt a ciphertext
-void decrypt(FILE *input_fp, const char *output_file) {
+// Function to rsa_decrypt a ciphertext
+void rsa_decrypt(FILE *input_fp, const char *output_file) {
     FILE *rsa_pk = fopen("rsa_key.txt", "r");
     if (rsa_pk == NULL) {
         printf("Error: Unable to open rsa_key.txt.\n");
@@ -186,88 +148,6 @@ void decrypt(FILE *input_fp, const char *output_file) {
 
     fclose(output_fp);
 }
-/*
-void encrypt(FILE *input_fp, const char *output_file) {
-    // Generate RSA public key and store it in rsa_key.txt
-    gen_rsa_pk("rsa_key.txt");
-
-    // Read n
-    FILE *rsa_pk;
-    rsa_pk = fopen("rsa_key.txt", "r");
-    if (rsa_pk == NULL) {
-        printf("Error: Unable to open rsa_key.txt.\n");
-        return; // Error handling
-    }
-
-    long long int n;
-    fscanf(rsa_pk, "%lld", &n);
-    fclose(rsa_pk);
-
-    // Encrypt the message from the input file using n and e
-    char message[1000];
-    while (fgets(message, sizeof(message), input_fp) != NULL) {
-        int len = strlen(message);
-        for (int i = 0; i < len; i++) {
-            long long int encrypted_message;
-            if (!isspace(message[i])) { // Encrypt only if the character is not a space
-                encrypted_message = modExp(message[i], e, n);
-            } else {
-                // If the character is a space, set encrypted_message to 0
-                encrypted_message = 0;
-            }
-            // Write the encrypted message to the output file
-            FILE *output_fp;
-            output_fp = fopen(output_file, "a"); // Use "a" to append instead of overwriting
-            if (output_fp == NULL) {
-                printf("Error: Unable to open %s for writing.\n", output_file);
-                return; // Error handling
-            }
-            fprintf(output_fp, "%lld ", encrypted_message);
-            fclose(output_fp);
-        }
-    }
-}
-
-// Function to decrypt a ciphertext
-void decrypt(FILE *input_fp, const char *output_file) {
-    FILE *rsa_pk = fopen("rsa_key.txt", "r");
-    if (rsa_pk == NULL) {
-        printf("Error: Unable to open rsa_key.txt.\n");
-        return; // Error handling
-    }
-
-    long long int n, d;
-    fscanf(rsa_pk, "%lld %lld", &n, &d);
-    fclose(rsa_pk);
-
-    FILE *output_fp = fopen(output_file, "a");
-    if (output_fp == NULL) {
-        printf("Error: Unable to open %s for writing.\n", output_file);
-        return; // Error handling
-    }
-
-    char ciphertext_char;
-    char token[1024] = {0}; // Initialize token array with zeros
-    int token_index = 0;
-    while ((ciphertext_char = fgetc(input_fp)) != EOF) {
-        if (ciphertext_char != ' ') {
-            token[token_index++] = ciphertext_char;
-        } else {
-            long long int ciphertext_num = atoll(token);
-            if (ciphertext_num == 0) {
-                fprintf(output_fp, " ");
-            } else {
-                long long int decrypted_message = modExp(ciphertext_num, d, n);
-                fprintf(output_fp, "%c", (char)decrypted_message);
-            }
-            token_index = 0;
-            // Clear token array
-            memset(token, 0, sizeof(token));
-        }
-    }
-    fclose(output_fp);
-}*/
-
 
 void gen_rsa_pk(const char *filename) {
     srand(time(NULL));

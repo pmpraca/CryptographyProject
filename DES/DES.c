@@ -335,7 +335,7 @@ void des_encrypt_file(FILE *input_fp, const char *output_file) {
     uint8_t inputBuffer[DES_BLOCK_SIZE];
     uint8_t outputBuffer[DES_BLOCK_SIZE];
 
-    // Read input file in blocks and encrypt each block
+    // Read input file in blocks and rsa_encrypt each block
     size_t bytes;
     while ((bytes = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
         if (bytes < DES_BLOCK_SIZE) {
@@ -369,7 +369,7 @@ void des_decrypt_file(FILE *input_fp, const char *output_file) {
     uint8_t inputBuffer[DES_BLOCK_SIZE];
     uint8_t outputBuffer[DES_BLOCK_SIZE];
 
-    // Read input file in blocks and decrypt each block
+    // Read input file in blocks and rsa_decrypt each block
     size_t bytes;
     while ((bytes = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
         uint64_t inputBlock = *((uint64_t*)inputBuffer);
