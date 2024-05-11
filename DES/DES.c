@@ -113,7 +113,7 @@ static char Sboxes[8][64] = {{
         2,  1, 14,  7,  4, 10,  8, 13, 15, 12,  9,  0,  3,  5,  6, 11
     }};
 
-// Permuted Choice 1 is determined by the following table:
+// Permuted Choice 1
 static char PC_1[] = {
         57, 49, 41, 33, 25, 17,  9,
         1, 58, 50, 42, 34, 26, 18,
@@ -126,7 +126,7 @@ static char PC_1[] = {
         21, 13,  5, 28, 20, 12,  4
 };
 
-// Permuted Choice 2 is determined by the following table:
+// Permuted Choice 2
 static char PC_2[] = {
         14, 17, 11, 24,  1,  5,
         3, 28, 15,  6, 21, 10,
@@ -143,37 +143,36 @@ static char iteration_shift[] = { 1,  1,  2,  2,  2,  2,  2,  2,  1,  2,  2,  2,
 
 // Function for initial permutation
 uint64_t initial_permutation(uint64_t input) {
-    uint64_t init_perm_res = 0;
+    uint64_t permuted_block = 0;
     for (int i = 0; i < 64; i++) {
-        init_perm_res <<= 1;
-        init_perm_res |= (input >> (64 - IP[i])) & LB64_MASK;
+        permuted_block <<= 1;
+        permuted_block |= (input >> (64 - IP[i])) & LB64_MASK;
     }
-    return init_perm_res;
+    return permuted_block;
 }
 
-// Function for inverse initial permutation
-uint64_t inverse_initial_permutation(uint64_t pre_output) {
-    uint64_t inv_init_perm_res = 0;
+uint64_t final_permutation(uint64_t input) {
+    uint64_t inv_permuted_block = 0;
     for (int i = 0; i < 64; i++) {
-        inv_init_perm_res <<= 1;
-        inv_init_perm_res |= (pre_output >> (64 - inverse_IP[i])) & LB64_MASK;
+        inv_permuted_block <<= 1;
+        inv_permuted_block |= (input >> (64 - inverse_IP[i])) & LB64_MASK;
     }
-    return inv_init_perm_res;
+    return inv_permuted_block;
 }
 
-// Function for initial key schedule calculation
-void initial_key_schedule(uint64_t key, uint32_t *C, uint32_t *D) {
-    uint64_t permuted_choice_1 = 0;
+// Discards the end bits of the original 64bit key and splits in two
+void permuted_key_split(uint64_t key, uint32_t *C, uint32_t *D) {
+    uint64_t permuted_1 = 0;
     for (int i = 0; i < 56; i++) {
-        permuted_choice_1 <<= 1;
-        permuted_choice_1 |= (key >> (64 - PC_1[i])) & LB64_MASK;
+        permuted_1 <<= 1;
+        permuted_1 |= (key >> (64 - PC_1[i])) & LB64_MASK;
     }
-    *C = (uint32_t)((permuted_choice_1 >> 28) & 0x000000000fffffff);
-    *D = (uint32_t)(permuted_choice_1 & 0x000000000fffffff);
+    *C = (uint32_t)((permuted_1 >> 28) & 0x000000000fffffff);
+    *D = (uint32_t)(permuted_1 & 0x000000000fffffff);
 }
 
 // Function for calculation of the 16 keys
-void calculate_sub_keys(uint32_t C, uint32_t D, uint64_t *sub_keys) {
+void gen_sub_keys(uint32_t C, uint32_t D, uint64_t *sub_keys) {
     for (int i = 0; i < 16; i++) {
         // Key schedule
         for (int j = 0; j < iteration_shift[i]; j++) {
@@ -181,23 +180,23 @@ void calculate_sub_keys(uint32_t C, uint32_t D, uint64_t *sub_keys) {
             D = 0x0fffffff & (D << 1) | 0x00000001 & (D >> 27);
 
         }
-        uint64_t permuted_choice_2 = 0;
-        permuted_choice_2 = (((uint64_t)C) << 28) | (uint64_t) D;
+        uint64_t permuted_2 = 0;
+        permuted_2 = (((uint64_t)C) << 28) | (uint64_t) D;
         sub_keys[i] = 0;
         for (int j = 0; j < 48; j++) {
             sub_keys[i] <<= 1;
-            sub_keys[i] |= (permuted_choice_2 >> (56 - PC_2[j])) & LB64_MASK;
+            sub_keys[i] |= (permuted_2 >> (56 - PC_2[j])) & LB64_MASK;
         }
     }
 }
 
-// Function for function f(R, K) calculation
-uint32_t calculate_f(uint32_t R, uint64_t *sub_key, char mode, int iteration_i) {
+// f(R, K) calculation (feistel)
+uint32_t f_function(uint32_t R, uint64_t *sub_key, char mode, int iteration_i) {
     uint32_t s_output = 0;
-    uint32_t f_function_res = 0;
+    uint32_t f_function_out = 0;
     uint64_t s_input = 0;
 
-    // Expansion permutation
+    // Expansion permutation (P-box)
     for (int j = 0; j < 48; j++) {
         s_input <<= 1;
         s_input |= (uint64_t)((R >> (32 - E_bit_selection[j])) & LB32_MASK);
@@ -219,46 +218,49 @@ uint32_t calculate_f(uint32_t R, uint64_t *sub_key, char mode, int iteration_i) 
         s_output <<= 4;
         s_output |= (uint32_t)(Sboxes[j][16 * row + column] & 0x0f);
     }
-    f_function_res = 0;
+    f_function_out = 0;
     // Permutation
     for (int j = 0; j < 32; j++) {
-        f_function_res <<= 1;
-        f_function_res |= (s_output >> (32 - P[j])) & LB32_MASK;
+        f_function_out<<= 1;
+        f_function_out |= (s_output >> (32 - P[j])) & LB32_MASK;
     }
 
-    return f_function_res;
+    return f_function_out;
 }
 
-// Main DES function
+// Encrypt Process
 uint64_t des(uint64_t input, uint64_t key, char mode) {
     uint32_t C, D = 0;
     uint64_t sub_keys[16];
     uint64_t s_input = 0;
-    // Initial permutation
-    uint64_t init_perm_res = initial_permutation(input);
-    // Initial key schedule calculation
-    initial_key_schedule(key, &C, &D);
-    // Calculation of the 16 keys
-    calculate_sub_keys(C, D, sub_keys);
-    // Function f(R, K) calculation
 
-    uint32_t L = (uint32_t)(init_perm_res >> 32) & L64_MASK;
-    uint32_t R = (uint32_t)init_perm_res & L64_MASK;
+    // Key
+    permuted_key_split(key, &C, &D);
 
+    // 16 keys
+    gen_sub_keys(C, D, sub_keys);
+
+    // Feistel Encryption begins
+    uint64_t init_permutation = initial_permutation(input);
+
+    // Function f(R, K)
+    uint32_t L = (uint32_t)(init_permutation >> 32) & L64_MASK;
+    uint32_t R = (uint32_t)init_permutation & L64_MASK;
+
+    // DES rounds
     for (int i = 0; i < 16; i++) {
 
-        s_input = 0;
-
-        uint32_t f_function_res = calculate_f(R, sub_keys, mode, i);
+        uint32_t f_output = f_function(R, sub_keys, mode, i);
         uint32_t temp = R;
-        R = L ^ f_function_res;
+        R = L ^ f_output;
         L = temp;
     }
 
-    uint64_t pre_output = (((uint64_t)R) << 32) | (uint64_t)L;
-    uint64_t inv_init_perm_res = inverse_initial_permutation(pre_output);
+    // Merge both L & R sides of plaintext
+    uint64_t l_r_merged = (((uint64_t) R ) << 32) | (uint64_t) L;
+    uint64_t ciphertext = final_permutation(l_r_merged);
 
-    return inv_init_perm_res;
+    return ciphertext;
 }
 
 // Function to perform DES encryption
@@ -285,11 +287,11 @@ void gen_des_key(const char *filename) {
         key[i] = rand() % 256;
     }
 
-    // Print the generated key for debugging
-    printf("Generated Key:");
-    for (int i = 0; i < DES_BLOCK_SIZE; i++) {
-        printf(" %02x", key[i]);
-    }
+    // DEBUG
+    //printf("Generated Key:");
+    //for (int i = 0; i < DES_BLOCK_SIZE; i++) {
+    //    printf(" %02x", key[i]);
+    //}
     printf("\n");
 
     fwrite(key, 1, DES_BLOCK_SIZE, key_file);
@@ -306,7 +308,7 @@ uint8_t* read_des_key(const char *filename) {
 
     uint8_t *key = (uint8_t*)malloc(DES_BLOCK_SIZE);
     if (key == NULL) {
-        perror("Memory allocation failed");
+        perror("Memory allocation failedddd");
         exit(EXIT_FAILURE);
     }
 
@@ -316,122 +318,43 @@ uint8_t* read_des_key(const char *filename) {
 
     return key;
 }
-/*
-// Function to encrypt a file using DES
+
 void des_encrypt_file(FILE *input_fp, const char *output_file) {
     FILE *encryptedFile = fopen(output_file, "wb");
     if (!encryptedFile) {
         printf("Error opening output file for writing.\n");
         return;
     }
+
+    // Gen key and save it into a file
     gen_des_key("des_key.txt");
-    uint8_t inputBuffer[DES_BLOCK_SIZE];
-    uint8_t outputBuffer[DES_BLOCK_SIZE];
-    printf("1");
-    uint64_t *key = (uint64_t *) read_des_key("des_key.txt");
-    // Read input file in blocks and encrypt each block
-    while (fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp) == DES_BLOCK_SIZE) {
-        uint64_t inputBlock = *((uint64_t*)inputBuffer);
-        uint64_t encryptedBlock = des_encrypt(inputBlock, (uint64_t) key); // Call your DES encryption function
-        *((uint64_t*)outputBuffer) = encryptedBlock;
-        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, encryptedFile);
-    }
 
-    fclose(encryptedFile);
-}*/
-/*
-void des_encrypt_file(FILE *input_fp, const char *output_file) {
-    FILE *encryptedFile = fopen(output_file, "wb");
-    if (!encryptedFile) {
-        printf("Error opening output file for writing.\n");
-        return;
-    }
-
-
-    uint64_t key = 0x133457799BBCDFF1; // Example key, replace with your key
-    // Generate or read DES key here
-
-    uint8_t inputBuffer[DES_BLOCK_SIZE];
-    uint8_t outputBuffer[DES_BLOCK_SIZE];
-
-    // Read input file in blocks and encrypt each block
-    size_t bytesRead;
-    while ((bytesRead = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
-        if (bytesRead < DES_BLOCK_SIZE) {
-            // Pad the last block if necessary
-            for (size_t i = bytesRead; i < DES_BLOCK_SIZE; ++i) {
-                inputBuffer[i] = 0; // You may want to choose a proper padding strategy
-            }
-        }
-
-        uint64_t inputBlock = *((uint64_t*)inputBuffer);
-        uint64_t encryptedBlock = des_encrypt(inputBlock, key); // Call your DES encryption function
-        *((uint64_t*)outputBuffer) = encryptedBlock;
-
-        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, encryptedFile);
-    }
-
-    fclose(encryptedFile);
-}*/
-
-void des_encrypt_file(FILE *input_fp, const char *output_file) {
-    FILE *encryptedFile = fopen(output_file, "wb");
-    if (!encryptedFile) {
-        printf("Error opening output file for writing.\n");
-        return;
-    }
-
-    gen_des_key("key_file.txt");
-    // Generate or read DES key
+    // Get key
     uint8_t *key = read_des_key("des_key.txt"); // or gen_des_key(key_file);
 
     uint8_t inputBuffer[DES_BLOCK_SIZE];
     uint8_t outputBuffer[DES_BLOCK_SIZE];
 
     // Read input file in blocks and encrypt each block
-    size_t bytesRead;
-    while ((bytesRead = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
-        if (bytesRead < DES_BLOCK_SIZE) {
-            // Pad the last block if necessary
-            for (size_t i = bytesRead; i < DES_BLOCK_SIZE; ++i) {
-                inputBuffer[i] = 0; // You may want to choose a proper padding strategy
+    size_t bytes;
+    while ((bytes = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
+        if (bytes < DES_BLOCK_SIZE) {
+            // Pad the last block if we need (TODO: its incorrect need to change! )
+            for (size_t i = bytes; i < DES_BLOCK_SIZE; ++i) {
+                inputBuffer[i] = 0;
             }
         }
 
         uint64_t inputBlock = *((uint64_t*)inputBuffer);
-        uint64_t encryptedBlock = des_encrypt(inputBlock, *((uint64_t*)key)); // Call your DES encryption function with the key
+        uint64_t encryptedBlock = des_encrypt(inputBlock, *((uint64_t*)key));
         *((uint64_t*)outputBuffer) = encryptedBlock;
 
         fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, encryptedFile);
     }
 
     fclose(encryptedFile);
-    free(key); // Free dynamically allocated memory for the key
+    free(key);
 }
-/*
-// Function to decrypt a file using DES
-void des_decrypt_file(FILE *input_fp, const char *output_file) {
-    FILE *decryptedFile = fopen(output_file, "wb");
-    if (!decryptedFile) {
-        printf("Error opening output file for writing.\n");
-        return;
-    }
-
-    uint8_t inputBuffer[DES_BLOCK_SIZE];
-    uint8_t outputBuffer[DES_BLOCK_SIZE];
-
-    uint64_t *key = (uint64_t *) read_des_key("des_key.txt");
-
-    // Read input file in blocks and decrypt each block
-    while (fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp) == DES_BLOCK_SIZE) {
-        uint64_t inputBlock = *((uint64_t*)inputBuffer);
-        uint64_t decryptedBlock = des_decrypt(inputBlock, (uint64_t) key); // Call your DES decryption function
-        *((uint64_t*)outputBuffer) = decryptedBlock;
-        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, decryptedFile);
-    }
-
-    fclose(decryptedFile);
-}*/
 
 void des_decrypt_file(FILE *input_fp, const char *output_file) {
     FILE *decryptedFile = fopen(output_file, "wb");
@@ -440,24 +363,22 @@ void des_decrypt_file(FILE *input_fp, const char *output_file) {
         return;
     }
 
-    // Load DES key from file
+    // get key from file
     uint8_t *key = read_des_key("des_key.txt");
 
     uint8_t inputBuffer[DES_BLOCK_SIZE];
     uint8_t outputBuffer[DES_BLOCK_SIZE];
 
     // Read input file in blocks and decrypt each block
-    size_t bytesRead;
-    while ((bytesRead = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
+    size_t bytes;
+    while ((bytes = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
         uint64_t inputBlock = *((uint64_t*)inputBuffer);
-        uint64_t decryptedBlock = des_decrypt(inputBlock, *((uint64_t*)key)); // Call your DES decryption function with the key
+        uint64_t decryptedBlock = des_decrypt(inputBlock, *((uint64_t*)key));
 
-        // If it's the last block, remove padding
-        if (bytesRead < DES_BLOCK_SIZE) {
-            // Remove padding from the last block
-            // You need to implement a proper padding strategy and handle it accordingly
-            // This is just an example of removing zero padding
-            while (decryptedBlock & 0xFF == 0) {
+        // If last block remove padding
+        if (bytes < DES_BLOCK_SIZE) {
+            // Padding
+            while ((decryptedBlock & 0xFF) == 0) {
                 decryptedBlock >>= 8;
             }
         }
@@ -467,42 +388,5 @@ void des_decrypt_file(FILE *input_fp, const char *output_file) {
     }
 
     fclose(decryptedFile);
-    free(key); // Free dynamically allocated memory for the key
+    free(key);
 }
-/*
-void des_decrypt_file(FILE *input_fp, const char *output_file) {
-    FILE *decryptedFile = fopen(output_file, "wb");
-    if (!decryptedFile) {
-        printf("Error opening output file for writing.\n");
-        return;
-    }
-
-    uint8_t inputBuffer[DES_BLOCK_SIZE];
-    uint8_t outputBuffer[DES_BLOCK_SIZE];
-
-    // Load DES key from file
-    uint64_t key = 0x133457799BBCDFF1; // Example key, replace with your key
-
-    // Read input file in blocks and decrypt each block
-    size_t bytesRead;
-    while ((bytesRead = fread(inputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, input_fp)) > 0) {
-        uint64_t inputBlock = *((uint64_t*)inputBuffer);
-        uint64_t decryptedBlock = des_decrypt(inputBlock, key); // Call your DES decryption function
-
-        // If it's the last block, remove padding
-        if (bytesRead < DES_BLOCK_SIZE) {
-            // Remove padding from the last block
-            // You need to implement a proper padding strategy and handle it accordingly
-            // This is just an example of removing zero padding
-            while (decryptedBlock & 0xFF == 0) {
-                decryptedBlock >>= 8;
-            }
-        }
-
-        *((uint64_t*)outputBuffer) = decryptedBlock;
-        fwrite(outputBuffer, sizeof(uint8_t), DES_BLOCK_SIZE, decryptedFile);
-    }
-
-    fclose(decryptedFile);
-}*/
-
