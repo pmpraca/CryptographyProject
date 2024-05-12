@@ -1,0 +1,164 @@
+RSA Documentation
+RSA is a public-key algorithm for encrypting and signing messages.
+
+Generation
+Unlike symmetric cryptography, where the key is typically just a random series of bytes, RSA keys have a complex internal structure with specific mathematical properties.
+
+cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(public_exponent, key_size)[source]
+Added in version 0.5.
+
+Changed in version 3.0: Tightened restrictions on public_exponent.
+
+Generates a new RSA private key. key_size describes how many bits long the key should be. Larger keys provide more security; currently 1024 and below are considered breakable while 2048 or 4096 are reasonable default key sizes for new keys. The public_exponent indicates what one mathematical property of the key generation will be. Unless you have a specific reason to do otherwise, you should always use 65537.
+
+from cryptography.hazmat.primitives.asymmetric import rsa
+private_key = rsa.generate_private_key(
+    public_exponent=65537,
+    key_size=2048,
+)
+Parameters
+:
+public_exponent (int) – The public exponent of the new key. Either 65537 or 3 (for legacy purposes). Almost everyone should use 65537.
+
+key_size (int) – The length of the modulus in bits. For keys generated in 2015 it is strongly recommended to be at least 2048 (See page 41). It must not be less than 512.
+
+Returns
+:
+An instance of RSAPrivateKey.
+
+Key loading
+If you already have an on-disk key in the PEM format (which are recognizable by the distinctive -----BEGIN {format}----- and -----END {format}----- markers), you can load it:
+
+from cryptography.hazmat.primitives import serialization
+
+with open("path/to/key.pem", "rb") as key_file:
+    private_key = serialization.load_pem_private_key(
+        key_file.read(),
+        password=None,
+    )
+Serialized keys may optionally be encrypted on disk using a password. In this example we loaded an unencrypted key, and therefore we did not provide a password. If the key is encrypted we can pass a bytes object as the password argument.
+
+There is also support for loading public keys in the SSH format.
+
+Key serialization
+If you have a private key that you’ve loaded you can use private_bytes() to serialize the key.
+
+from cryptography.hazmat.primitives import serialization
+pem = private_key.private_bytes(
+   encoding=serialization.Encoding.PEM,
+   format=serialization.PrivateFormat.PKCS8,
+   encryption_algorithm=serialization.BestAvailableEncryption(b'mypassword')
+)
+pem.splitlines()[0]
+b'-----BEGIN ENCRYPTED PRIVATE KEY-----'
+It is also possible to serialize without encryption using NoEncryption.
+
+pem = private_key.private_bytes(
+   encoding=serialization.Encoding.PEM,
+   format=serialization.PrivateFormat.TraditionalOpenSSL,
+   encryption_algorithm=serialization.NoEncryption()
+)
+pem.splitlines()[0]
+b'-----BEGIN RSA PRIVATE KEY-----'
+For public keys you can use public_bytes() to serialize the key.
+
+from cryptography.hazmat.primitives import serialization
+public_key = private_key.public_key()
+pem = public_key.public_bytes(
+   encoding=serialization.Encoding.PEM,
+   format=serialization.PublicFormat.SubjectPublicKeyInfo
+)
+pem.splitlines()[0]
+b'-----BEGIN PUBLIC KEY-----'
+Signing
+A private key can be used to sign a message. This allows anyone with the public key to verify that the message was created by someone who possesses the corresponding private key. RSA signatures require a specific hash function, and padding to be used. Here is an example of signing message using RSA, with a secure hash function and padding:
+
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+message = b"A message I want to sign"
+signature = private_key.sign(
+    message,
+    padding.PSS(
+        mgf=padding.MGF1(hashes.SHA256()),
+        salt_length=padding.PSS.MAX_LENGTH
+    ),
+    hashes.SHA256()
+)
+Valid paddings for signatures are PSS and PKCS1v15. PSS is the recommended choice for any new protocols or applications, PKCS1v15 should only be used to support legacy protocols.
+
+If your data is too large to be passed in a single call, you can hash it separately and pass that value using Prehashed.
+
+from cryptography.hazmat.primitives.asymmetric import utils
+chosen_hash = hashes.SHA256()
+hasher = hashes.Hash(chosen_hash)
+hasher.update(b"data & ")
+hasher.update(b"more data")
+digest = hasher.finalize()
+sig = private_key.sign(
+    digest,
+    padding.PSS(
+        mgf=padding.MGF1(hashes.SHA256()),
+        salt_length=padding.PSS.MAX_LENGTH
+    ),
+    utils.Prehashed(chosen_hash)
+)
+Verification
+The previous section describes what to do if you have a private key and want to sign something. If you have a public key, a message, a signature, and the signing algorithm that was used you can check that the private key associated with a given public key was used to sign that specific message. You can obtain a public key to use in verification using load_pem_public_key(), load_der_public_key(), public_key() , or public_key().
+
+public_key = private_key.public_key()
+public_key.verify(
+    signature,
+    message,
+    padding.PSS(
+        mgf=padding.MGF1(hashes.SHA256()),
+        salt_length=padding.PSS.MAX_LENGTH
+    ),
+    hashes.SHA256()
+)
+If the signature does not match, verify() will raise an InvalidSignature exception.
+
+If your data is too large to be passed in a single call, you can hash it separately and pass that value using Prehashed.
+
+chosen_hash = hashes.SHA256()
+hasher = hashes.Hash(chosen_hash)
+hasher.update(b"data & ")
+hasher.update(b"more data")
+digest = hasher.finalize()
+public_key.verify(
+    sig,
+    digest,
+    padding.PSS(
+        mgf=padding.MGF1(hashes.SHA256()),
+        salt_length=padding.PSS.MAX_LENGTH
+    ),
+    utils.Prehashed(chosen_hash)
+)
+Encryption
+RSA encryption is interesting because encryption is performed using the public key, meaning anyone can encrypt data. The data is then decrypted using the private key.
+
+Like signatures, RSA supports encryption with several different padding options. Here’s an example using a secure padding and hash function:
+
+message = b"encrypted data"
+ciphertext = public_key.encrypt(
+    message,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)
+Valid paddings for encryption are OAEP and PKCS1v15. OAEP is the recommended choice for any new protocols or applications, PKCS1v15 should only be used to support legacy protocols.
+
+Decryption
+Once you have an encrypted message, it can be decrypted using the private key:
+
+plaintext = private_key.decrypt(
+    ciphertext,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)
+plaintext == message
+True

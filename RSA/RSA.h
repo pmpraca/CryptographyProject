@@ -15,8 +15,8 @@
 
 // Function prototypes
 int generate_random_prime();
-long long int modExp(long long int base, long long int exponent, long long int modulus);
-long long int modInv(long long int a, long long int m);
+uint64_t modExp(uint64_t base, uint64_t exponent, uint64_t modulus);
+uint64_t modInv(uint64_t a, uint64_t m);
 void rsa_encrypt(FILE *input_fp, const char *output_file);
 void rsa_decrypt(FILE *input_fp, const char *output_file);
 void gen_rsa_pk(const char *filename);
